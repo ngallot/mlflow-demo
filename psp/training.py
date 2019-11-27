@@ -1,20 +1,17 @@
-import sys
-import os
 import argparse
-import mlflow
-import mlflow.sklearn
+import logging
+import os
+import sys
+import warnings
+
 import numpy as np
 import pandas as pd
-from mlflow.tracking import MlflowClient
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-import warnings
-import logging
-
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -87,23 +84,9 @@ X_test size: {X_test.shape}
     auc_test = auc_score_model(pipeline, X_test, y_test)
     logger.info(f'AUC score with hyper params search and cross validated logistic regression: {auc_test}')
 
-    # Get best model from hyper parameters search and log model params in mlflow
     model = pipeline.steps[1][1]
-    best_params = model.best_params_
-
+    logger.info(f'Model parameters: {model.best_params_}')
     logger.info('Training done ')
-
-    # Logging results to mlflow tracking
-    # mlflow_tracking_url = 'http://0.0.0.0:5555'
-    # print(f'Setting mlflow tracking url {mlflow_tracking_url}')
-    # mlflow.set_tracking_uri(mlflow_tracking_url)
-    # experiment_name = 'pulsar_stars_training'
-    # experiment_id = create_experiment(experiment_name)
-    # print(f'Setting experiment {experiment_name} (id={experiment_id}) for mlflow')
-    # with mlflow.start_run(experiment_id=experiment_id, run_name='training'):
-    #     mlflow.log_params(model.best_params_)
-    #     mlflow.log_metric('auc_test', auc_test)
-    #     mlflow.sklearn.log_model(pipeline, 'model')
 
 
 if __name__ == '__main__':
