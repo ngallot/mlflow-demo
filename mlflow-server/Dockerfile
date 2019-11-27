@@ -7,5 +7,4 @@ RUN python -m pip install --upgrade pip mlflow==1.4.0
 EXPOSE 1234
 
 # Define entry point
-#ENTRYPOINT ./startup.sh
 ENTRYPOINT mlflow server --host 0.0.0.0 --port 1234
