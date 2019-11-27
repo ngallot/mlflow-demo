@@ -12,14 +12,36 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+import mlflow
+from mlflow.tracking import MlflowClient
+from mlflow.entities import Experiment
+import mlflow.sklearn
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
-    os.environ["PYTHONWARNINGS"] = "ignore" # Also affect subprocesses
+    os.environ["PYTHONWARNINGS"] = "ignore"
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('psp.mltraining')
+
+
+def get_or_create_experiment(experiment_name) -> Experiment:
+    """
+    Creates an mlflow experiment
+    :param experiment_name: str. The name of the experiment to be set in MLFlow
+    :return: the experiment created if it doesn't exist, experiment if it is already created.
+    """
+    try:
+        client = MlflowClient()
+        experiment: Experiment = client.get_experiment_by_name(name=experiment_name)
+        if experiment and experiment.lifecycle_stage != 'deleted':
+            return experiment
+        else:
+            experiment_id = client.create_experiment(name=experiment_name)
+            return client.get_experiment(experiment_id=experiment_id)
+    except Exception as e:
+        logger.error(f'Unable to get or create experiment {experiment_name}: {e}')
 
 
 def auc_score(y_pred, y_true):
@@ -41,12 +63,14 @@ def auc_score_model(model, X_test, y_test):
     :param y_test: the test labels
     :return: the AUC between model predictions and ground truth
     """
-    pred = model.predict(X_test)
-    return auc_score(pred, y_test)
+    return auc_score(model.predict(X_test), y_test)
 
 
-# @ignore_warnings(category=ConvergenceWarning)
 def train(data_path: str, test_size: float):
+
+    if not os.getenv('MLFLOW_TRACKING_URI'):
+        raise Exception('Env var MLFLOW_TRACKING_URI should be set')
+
     np.random.seed(40)
 
     # Load data and define features and target
@@ -84,9 +108,21 @@ X_test size: {X_test.shape}
     auc_test = auc_score_model(pipeline, X_test, y_test)
     logger.info(f'AUC score with hyper params search and cross validated logistic regression: {auc_test}')
 
+    return pipeline, 'auc_test', auc_test
+
+
+def log_metrics_and_model(pipeline, test_metric_name: str, test_metric_value: float):
+
+    experiment_name = 'pulsar_stars_training'
+    experiment: Experiment = get_or_create_experiment(experiment_name)
+
     model = pipeline.steps[1][1]
-    logger.info(f'Model parameters: {model.best_params_}')
-    logger.info('Training done ')
+    best_params = model.best_params_
+
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name='training'):
+        mlflow.log_params(best_params)
+        mlflow.log_metric(test_metric_name, test_metric_value)
+        mlflow.sklearn.log_model(pipeline, 'model')
 
 
 if __name__ == '__main__':
@@ -107,4 +143,5 @@ if __name__ == '__main__':
     if not args.test_size:
         raise Exception('argument --test-size should be specified')
 
-    train(args.data_path, float(args.test_size))
+    pipeline, test_metric_name, test_metric_value = train(args.data_path, float(args.test_size))
+    log_metrics_and_model(pipeline=pipeline, test_metric_name=test_metric_name, test_metric_value=test_metric_value)

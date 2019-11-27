@@ -15,6 +15,30 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Writing the minimal training script
+Now that we've built our local mlflow server, we can write a minimal training script for our ml model.
+
+The code is in
+```bash
+psp/training.py #psp stands for pulsar stars predictor
+```
+
+Here we build a very simple model with Scikit Learn. The goal is not to spend time on model optimization,
+but rather deploy a working model quickly. We will still have the opportunity to enhance it once a first version is developed.
+However, a very important concept here is to always use pipelines to train ml models. The concept of pipelines is present in almost every ml library. It allows easier deployment.
+
+Our pipeline includes:
+- A StandardScaler
+- A cross validated logistic regression
+
+We also define our metrics to follow, here it's the AUC.
+
+To run the training script, just run the command: 
+```bash
+python psp/training.py --data-path ./data/pulsar_stars.csv --test-size 0.2
+```
+
+
 ### Setup local mlflow tracking server
 In this section, we will build a Docker container exposing the mlflow-tracking server api. It will allow us to update our training script in order to log metrics and
 models in mlflow.
@@ -81,3 +105,52 @@ This experiment was just for testing so we can now delete it:
 ```bash
 mlflow experiments delete -x 1
 ```
+
+### Using mlflow in our training script
+Now that we have a working mlflow server, we can use it to export both our model and our training metrics.
+
+We first create a utility function to create or retrieve an experiment by its name: 
+```python
+def get_or_create_experiment(experiment_name) -> Experiment:
+    """
+    Creates an mlflow experiment
+    :param experiment_name: str. The name of the experiment to be set in MLFlow
+    :return: the experiment created if it doesn't exist, experiment if it is already created.
+    """
+    try:
+        client = MlflowClient()
+        experiment: Experiment = client.get_experiment_by_name(name=experiment_name)
+        if experiment and experiment.lifecycle_stage != 'deleted':
+            return experiment
+        else:
+            experiment_id = client.create_experiment(name=experiment_name)
+            return client.get_experiment(experiment_id=experiment_id)
+    except Exception as e:
+        logger.error(f'Unable to get or create experiment {experiment_name}: {e}')
+```
+
+Then we update the code of our training script to export the model metrics and pipeline to mlflow:
+
+```python
+def log_metrics_and_model(pipeline, test_metric_name: str, test_metric_value: float):
+
+    experiment_name = 'pulsar_stars_training'
+    experiment: Experiment = get_or_create_experiment(experiment_name)
+
+    model = pipeline.steps[1][1]
+    best_params = model.best_params_
+
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name='training'):
+        mlflow.log_params(best_params)
+        mlflow.log_metric(test_metric_name, test_metric_value)
+        mlflow.sklearn.log_model(pipeline, 'model')
+```
+
+Now, after running again the training script, we can see our results in the MLflow UI: 
+<p align="center">
+  <img src="img/pulsars-training.png" alt="MLflow UI experiments results" />
+</p>
+
+
+*NB: right now, there is a bug when trying to display the artifacts stored in mlflow ui (if you click on a run). This
+bug is not present in a production setup.*
