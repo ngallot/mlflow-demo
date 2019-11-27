@@ -1,0 +1,11 @@
+name: mlflow-demo-docker
+
+docker_env:
+  image: pulsar-stars-predictor
+
+entry_points:
+  main:
+    parameters:
+      data_path: string
+      test_size: {type: float, default: 0.2}
+    command: "python train.py --data-path {data_path} --test-size {test_size}"
