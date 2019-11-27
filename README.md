@@ -154,3 +154,36 @@ Now, after running again the training script, we can see our results in the MLfl
 
 *NB: right now, there is a bug when trying to display the artifacts stored in mlflow ui (if you click on a run). This
 bug is not present in a production setup.*
+
+### Exposing the model
+Now that we've trained a model, we're ready to deploy it and make it available throught a REST api.
+For that we will use MLflow models utils.
+
+First, let's get the location of our model. It is printed to the console at the end of the training script.
+You can copy it manually and export it as an environment variable:
+
+``` bash
+export MODEL_PATH=xxx
+```
+You can explore a bit the contents of the model folder:
+```bash
+ls ${MODEL_PATH}
+cat ${MODEL_PATH}/MLmodel
+```
+
+Now we can use the MLflow models utils to serve the saved model:
+
+```bash
+mlflow models serve -m ${MODEL_PATH} -p 4321
+```
+
+After the magic happens, we can now test our model by sending an HTTP request to the deployed endpoint:
+
+```bash
+curl -X POST -H "Content-Type:application/json; format=pandas-split" \
+    --data '{"columns":["Mean of the integrated profile", " Standard deviation of the integrated profile", " Excess kurtosis of the integrated profile"," Skewness of the integrated profile"," Mean of the DM-SNR curve"," Standard deviation of the DM-SNR curve"," Excess kurtosis of the DM-SNR curve"," Skewness of the DM-SNR curve"],"data":[[140.5625,55.68378214,-0.23457141,-0.6996484,3.19983278,19.11042633,7.97553179,74.24222492]]}' \
+    http://127.0.0.1:4321/invocations
+```
+
+==> This command should return [0].
+

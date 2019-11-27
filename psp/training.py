@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import mlflow
 from mlflow.tracking import MlflowClient
-from mlflow.entities import Experiment
+from mlflow.entities import Experiment, RunInfo
 import mlflow.sklearn
 
 if not sys.warnoptions:
@@ -119,10 +119,20 @@ def log_metrics_and_model(pipeline, test_metric_name: str, test_metric_value: fl
     model = pipeline.steps[1][1]
     best_params = model.best_params_
 
-    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name='training'):
+    def build_local_model_path(relative_artifacts_uri: str, model_name: str):
+        import os
+        absolute_artifacts_uri = relative_artifacts_uri.replace('./', f'{os.getcwd()}/')
+        return os.path.join(absolute_artifacts_uri, model_name)
+
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_name='training') as run:
+        model_name = 'sklearn_logistic_regression'
+        run_info: RunInfo = run.info
         mlflow.log_params(best_params)
         mlflow.log_metric(test_metric_name, test_metric_value)
-        mlflow.sklearn.log_model(pipeline, 'model')
+        mlflow.sklearn.log_model(pipeline, model_name)
+        model_path = build_local_model_path(run_info.artifact_uri, model_name)
+
+        logger.info(f'Model for run_id {run_info.run_id} exported at {model_path}')
 
 
 if __name__ == '__main__':
