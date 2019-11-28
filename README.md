@@ -220,4 +220,12 @@ export MLFLOW_TRACKING_PASSWORD="xxx" # ==> I'll share it in slack
 mlflow run . -P data_path=./data/pulsar_stars.csv
 ```
 
-And that's it, your training code is now reproducible by anyone having conda installed!
+And that's it, your training code is now reproducible by anyone having conda installed! To verify, you can copy the csv data somewhere else
+and run the mlflow command from github:
+```bash
+export DATA_PATH=xxx
+cp ./data/plusar_stars.csv $DATA_PATH
+mlflow run git@github.com:ngallot/mlflow-demo.git -P data_path=${DATA_PATH}
+```
+
+Now you can start working on the ML model improvement :-)
