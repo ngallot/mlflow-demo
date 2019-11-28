@@ -10,9 +10,9 @@ You can create a directory named data at the root of your project and download t
 ### Project setup
 To run this project, it is recommended to first setup a virtual environment and install the requirements.txt in it.
 ```bash
-virtual env -p path/to/your/python venv
+virtualenv -p path/to/your/python venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r psp/requirements.txt
 ```
 
 ### Writing the minimal training script

@@ -68,9 +68,6 @@ def auc_score_model(model, X_test, y_test):
 
 def train(data_path: str, test_size: float):
 
-    if not os.getenv('MLFLOW_TRACKING_URI'):
-        raise Exception('Env var MLFLOW_TRACKING_URI should be set')
-
     np.random.seed(40)
 
     # Load data and define features and target
@@ -112,6 +109,9 @@ X_test size: {X_test.shape}
 
 
 def log_metrics_and_model(pipeline, test_metric_name: str, test_metric_value: float):
+
+    if not os.getenv('MLFLOW_TRACKING_URI', None):
+        logger.info(f'Env var MLFLOW_TRACKING_URI not set, skipping mlflow logging.')
 
     experiment_name = 'pulsar_stars_training'
     experiment: Experiment = get_or_create_experiment(experiment_name)
