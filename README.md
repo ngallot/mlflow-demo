@@ -159,6 +159,8 @@ bug is not present in a production setup.*
 Now that we've trained a model, we're ready to deploy it and make it available throught a REST api.
 For that we will use MLflow models utils.
 
+NB: for this section, you need to have conda (either miniconda or anaconda) installed.
+
 First, let's get the location of our model. It is printed to the console at the end of the training script.
 You can copy it manually and export it as an environment variable:
 
@@ -187,3 +189,35 @@ curl -X POST -H "Content-Type:application/json; format=pandas-split" \
 
 ==> This command should return [0].
 
+### Package our code as MLflow project
+In this section we'll see how to use the [mlflow projects](https://www.mlflow.org/docs/latest/projects.html) command line to run our code, and how to make it runnable via this command.
+
+NB: for this section, you need to have conda (either miniconda or anaconda) installed.
+
+As of now, we launch the training code via the command: 
+```bash
+python psp/training.py --data-path ./data/pulsar_stars.csv --test-size 0.2
+```
+
+To package it as an mlflow project, we need to :
+- create a conda.yaml file to specify the necessary dependencies to run the code. (in psp/conda.yaml)
+- create a MLproject file to specify script parameters and which command to run. (in ./MLproject)
+
+
+We will no longer use a local version of the mlflow tracking server, but a remote one that we've deployed on google cloud infrastructure.
+This tracking server includes:
+- a compute engine instance to run mlflow server
+- a public google cloud storage bucket to store metrics and artifacts
+- an nginx reverse proxy to enable basic authentication
+
+Hence, you need to set 3 environment variables to enable the mlflow client to communicate with the tracking server, before launching the
+execution of the training code via mlflow command:
+```bash
+export MLFLOW_TRACKING_URI=http://35.205.28.1
+export MLFLOW_TRACKING_USERNAME="ms-bgd"
+export MLFLOW_TRACKING_PASSWORD="xxx" # ==> I'll share it in slack
+
+mlflow run . -P data_path=./data/pulsar_stars.csv
+```
+
+And that's it, your training code is now reproducible by anyone having conda installed!
