@@ -7,8 +7,5 @@ services:
       dockerfile: Dockerfile
     image:
       mlflow:1.4.0
-    volumes:
-      - /home/ngallot/mlflow_data/backend_store:/backend_store
-      - /home/ngallot/mlflow_data/artifact_root:/artifact_root
     ports:
     - "1234:1234"
