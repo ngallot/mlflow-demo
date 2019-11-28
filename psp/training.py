@@ -110,9 +110,6 @@ X_test size: {X_test.shape}
 
 def log_metrics_and_model(pipeline, test_metric_name: str, test_metric_value: float):
 
-    if not os.getenv('MLFLOW_TRACKING_URI', None):
-        logger.info(f'Env var MLFLOW_TRACKING_URI not set, skipping mlflow logging.')
-
     experiment_name = 'pulsar_stars_training'
     experiment: Experiment = get_or_create_experiment(experiment_name)
 
@@ -154,4 +151,7 @@ if __name__ == '__main__':
         raise Exception('argument --test-size should be specified')
 
     pipeline, test_metric_name, test_metric_value = train(args.data_path, float(args.test_size))
-    log_metrics_and_model(pipeline=pipeline, test_metric_name=test_metric_name, test_metric_value=test_metric_value)
+    if os.getenv('MLFLOW_TRACKING_URI', None):
+        log_metrics_and_model(pipeline=pipeline, test_metric_name=test_metric_name, test_metric_value=test_metric_value)
+    else:
+        logger.info(f'Env var MLFLOW_TRACKING_URI not set, skipping mlflow logging.')
