@@ -212,8 +212,11 @@ This tracking server includes:
 
 Hence, you need to set 3 environment variables to enable the mlflow client to communicate with the tracking server, before launching the
 execution of the training code via mlflow command:
+
+The MLflow UI is visible here: http://34.89.15.138
+
 ```bash
-export MLFLOW_TRACKING_URI=http://35.205.28.1
+export MLFLOW_TRACKING_URI=http://34.89.15.138
 export MLFLOW_TRACKING_USERNAME="ms-bgd"
 export MLFLOW_TRACKING_PASSWORD="xxx" # ==> I'll share it in slack
 
